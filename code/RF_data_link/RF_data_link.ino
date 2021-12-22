@@ -1,6 +1,6 @@
 //********************** HEADER ***********************
 /*
-  Name : Arduino File template
+  Name : RF_DATA_LINK
   Title : RF data Link project ::  Receiver side
   Author: Gavin Lyons
   URL:https://github.com/gavinlyonsrepo/RF_DATA_LINK
@@ -10,16 +10,16 @@
 
 // ********************Connections ****************
 /*
-Receiver ATMEGA328P
+  Receiver ATMEGA328P
 
-1. I2C SDA  = LM75A SDA
-2. I2C SCLK = LM75A SCLK
-3. D11 = 433Mhz Rx Data in 
-4. D10 OLED_DC 
-5. D9 OLED_RES 9 
-6. D8 OLED_CS 8  
-7. D4 OLED_SCLK 4 
-8. D5 OLED_SDATA 5
+  1. I2C SDA  = LM75A SDA
+  2. I2C SCLK = LM75A SCLK
+  3. D11 = 433Mhz Rx Data in
+  4. D10 OLED_DC
+  5. D9 OLED_RES 9
+  6. D8 OLED_CS 8
+  7. D4 OLED_SCLK 4
+  8. D5 OLED_SDATA 5
 */
 
 //******************** LIBRARIES ******************
@@ -33,14 +33,14 @@ Receiver ATMEGA328P
 //******************** GLOBALS ********************
 
 // Serial
-//#define RF_SERIAL_DEBUG_ON // comment in for serial debug 
+//#define RF_SERIAL_DEBUG_ON // comment in for serial debug
 #define RF_SERIAL_BAUD 38400
 
 // Test timing
 unsigned long previousMillis = 0;        // will store last time LED was updated
 const long interval = 1000;           // interval at which to update testcount (milliseconds)
 uint8_t TestCount = 0;
-#define READSENSOR 30 // sensor internal polled seconds (number of testcounts)
+#define READSENSOR 30 // sensor internal polled seconds (number of testcounts intervals)
 #define INITDELAY  1000   // initial delay mS
 
 // LM75 sensor
@@ -57,10 +57,13 @@ M2M_LM75A lm75a;
 #define OLED_SDATA 5 // "
 ERMCH1115  myOLED(OLED_DC, OLED_RES, OLED_CS, OLED_SCLK, OLED_SDATA);  // GPIO 5-wire Software SPI interface
 
+
 // RF 433 mHz ask
 RH_ASK driver;
-uint8_t buf[RH_ASK_MAX_MESSAGE_LEN];
-uint8_t buflen = sizeof(buf);
+//uint8_t bufRX[RH_ASK_MAX_MESSAGE_LEN];
+//uint8_t bufRX[15];
+char bufRX[21];
+uint8_t bufRXlen = sizeof(bufRX);
 uint16_t RXCount = 0;
 
 //******************** SETUP ************************
@@ -98,6 +101,7 @@ void loop() {
   //define a buffer to cover half  screen
   uint8_t  screenBuffer[(myOLEDwidth * (myOLEDheight / 8)) / 2]; //(128 * 8)/2 = 512 bytes
 
+  // Define half size screen buffer for top side of OLED
   MultiBuffer top_side;
   top_side.screenbitmap = (uint8_t*) &screenBuffer;
   top_side.width = (myOLEDwidth) ;
@@ -105,6 +109,7 @@ void loop() {
   top_side.xoffset = 0;
   top_side.yoffset = 0;
 
+  // Define half size screen buffer for Bottom side of OLED
   MultiBuffer bot_side;
   bot_side.screenbitmap = (uint8_t*) &screenBuffer;
   bot_side.width = (myOLEDwidth);
@@ -112,10 +117,11 @@ void loop() {
   bot_side.xoffset = 0 ;
   bot_side.yoffset = (myOLEDheight / 2);
 
-  DisplayInternal(&top_side); //first display
+  //first pass display
+  DisplayInternal(&top_side);
   DisplayExternal(&bot_side, true);
 
-  while (true) // Test loop
+  while (true) // Test loop forever
   {
     unsigned long currentMillis = millis();
 
@@ -132,7 +138,7 @@ void loop() {
       DisplayInternal(&top_side);
     }
 
-    if (driver.recv(buf, &buflen)) // Non-blocking, Did data come from transmitter?
+    if (driver.recv(bufRX, &bufRXlen)) // Non-blocking, Did data come from transmitter?
     {
       RXCount++;
       if (RXCount == 9999) RXCount = 0;
@@ -149,10 +155,10 @@ void loop() {
 // Func Desc ::  function to display the external data on OLED
 // Param1 A pointer to the  OLED buffer struct
 // Param2 bool if true just display text and no data.
- 
+
 void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
 {
-
+  Serial.print(RXCount);
   myOLED.ActiveBuffer = targetbuffer; // set target buffer object
   myOLED.OLEDclearBuffer();
   myOLED.setCursor(0, 0);
@@ -167,40 +173,49 @@ void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
     myOLED.OLEDupdate();
     return;
   }
-  String str_humid;
-  String str_temp;
-  String str_out;
+
 
   // Message with a good checksum received, dump it.
 #ifdef RF_SERIAL_DEBUG_ON
-  driver.printBuffer("RX data Got:", buf, buflen);
+  driver.printBuffer("RX data Got:", bufRX, bufRXlen);
 #endif
+  char *token;
+  uint8_t LoopCount = 1;
+  char str_temp[7];
+  char str_humid[6];
+  char str_batVolts[5];
 
-  str_out = String((char*)buf);
-  // Split string into two values
-  for (uint16_t i = 0; i < str_out.length(); i++) {
-    if (str_out.substring(i, i + 1) == ",") {
-      str_humid = str_out.substring(0, i);
-      str_temp = str_out.substring(i + 1);
-      break;
+  // Spilt the incoming char array RX msg uisng strtok
+  token = strtok (bufRX, ",");
+  while (token  != NULL)
+  {
+    switch (LoopCount)
+    {
+      case 1: sprintf(str_temp, token); break;
+      case 2: sprintf(str_humid, token); break;
+      case 3: sprintf(str_batVolts, token); break;
     }
+    LoopCount++;
+    token = strtok (NULL, ",");
   }
 
 #ifdef RF_SERIAL_DEBUG_ON
   Serial.print("Humidity: ");
-  Serial.print(str_humid);
-  Serial.print("  - Temperature: ");
+  Serial.println(str_humid);
+  Serial.print("Temperature: ");
   Serial.println(str_temp);
+  Serial.print("Battery Voltage: ");
+  Serial.println(str_batVolts);
 #endif
 
   myOLED.setCursor(0, 14);
-  if (str_temp.toInt() == 255 || str_humid.toInt() == 255)
+  if (atoi(str_temp) == 255 || atoi(str_humid) == 255)
   {
     myOLED.print("Sensor error");
-  } else if ( (str_temp.toInt() <= -50) || (str_temp.toInt() >= 95) )
+  } else if ((atoi(str_temp) <= -50) || (atoi(str_temp) >= 95) )
   {
     myOLED.print("Out of range");
-  } else if ( (str_humid.toInt() <= -5) || (str_temp.toInt() >= 105) )
+  } else if ((atoi(str_humid) <= -5) || (atoi(str_humid) >= 105) )
   {
     myOLED.print("Out of range");
   }
@@ -208,13 +223,15 @@ void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
   {
     myOLED.setTextSize(2);
     myOLED.print(str_temp);
-
     myOLED.setCursor(0, 0);
     myOLED.setTextSize(1);
-    myOLED.setCursor(55, 22);
+    myOLED.setCursor(65, 22);
     myOLED.print(" C ");
     myOLED.print(str_humid);
-    myOLED.print(" %");
+    myOLED.print("%");
+    myOLED.setCursor(90, 12);
+    myOLED.print(str_batVolts);
+    myOLED.print("v");
   }
 
   myOLED.OLEDupdate();  //write to active buffer
@@ -242,9 +259,10 @@ void DisplayInternal(MultiBuffer* targetbuffer)
     myOLED.print("Out of range");
   } else
   {
-
     myOLED.setTextSize(2);
     myOLED.print(temperatureReading);
+    myOLED.setTextSize(1);
+    myOLED.setCursor(70, 22);
     myOLED.print(" C");
   }
 
