@@ -1,3 +1,11 @@
+Table of contents
+---------------------------
+
+  * [Overview](#overview)
+  * [Features](#features)
+  * [Files](#files)
+  * [Schematic](schematic) 
+
 Overview
 --------------------
 
@@ -46,14 +54,12 @@ Transmitter
 
 Receiver 
 
-![r](https://github.com/gavinlyonsrepo/RF_DATA_LINK/blob/main/doc/image/rx.png)
+![r](https://github.com/gavinlyonsrepo/RF_DATA_LINK/blob/main/image/rx.png)
 
-Output 
------------------------
-
-![r](https://github.com/gavinlyonsrepo/RF_DATA_LINK/blob/main/doc/image/output.png)
 
 TODO
 --------------------
+
+Final testing.
 
 PCB design + final build. 
