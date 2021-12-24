@@ -1,0 +1,13 @@
+OLED  ERROR Messages:  Internal Data Section:
+
+  1. Sensor error , Communications error with LM75A sensor
+  2. Out of range , Data read from sensor but outside known range of LM75A sensor
+
+OLED  ERROR Messages: External Data Section:
+
+  1. No Data,  Displayed on start-up until first data packet received
+  2. Out of range T, Data received but outside known temperature range of AHT10 sensor
+  3. Out of range H, Data received but outside known humidity range of AHT10 sensor
+  4. Sensor error , Data received but indicates transmitter IC had communications error with AHT10 sensor.
+  5. Rx count data on screen should increment  every time receiver receives data packet,
+  once a minute.

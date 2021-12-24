@@ -5,8 +5,9 @@
   Author: Gavin Lyons
   URL:https://github.com/gavinlyonsrepo/RF_DATA_LINK
   Date created: 2021-Nov
-  IC: ATMEGA328P
+  IC: arduino nano ATMEGA328P
 */
+
 
 // ********************Connections ****************
 /*
@@ -15,7 +16,7 @@
   1. I2C SDA  = LM75A SDA
   2. I2C SCLK = LM75A SCLK
   3. D11 = 433Mhz Rx Data in
-  4. D10 OLED_DC
+  4. D10 OLED_DC 10
   5. D9 OLED_RES 9
   6. D8 OLED_CS 8
   7. D4 OLED_SCLK 4
@@ -30,7 +31,7 @@
 #include <SPI.h> // Not actually used but needed to compile
 #endif
 
-//******************** GLOBALS ********************
+//******************** GLOBALS + DEFINES********************
 
 // Serial
 //#define RF_SERIAL_DEBUG_ON // comment in for serial debug
@@ -60,13 +61,16 @@ ERMCH1115  myOLED(OLED_DC, OLED_RES, OLED_CS, OLED_SCLK, OLED_SDATA);  // GPIO 5
 
 // RF 433 mHz ask
 RH_ASK driver;
-//uint8_t bufRX[RH_ASK_MAX_MESSAGE_LEN];
-//uint8_t bufRX[15];
+
 char bufRX[21];
 uint8_t bufRXlen = sizeof(bufRX);
 uint16_t RXCount = 0;
 
-//******************** SETUP ************************
+// ************ Function Headers ***********************
+void DisplayInternal(MultiBuffer* );
+void DisplayExternal(MultiBuffer* , bool );
+
+//******************** SETUP LOOP************************
 void setup() {
   delay(INITDELAY);
 
@@ -92,7 +96,7 @@ void setup() {
     ;
 #endif
 
-}
+} // End of Setup
 
 
 //******************* MAIN LOOP *****************
@@ -150,7 +154,7 @@ void loop() {
 } // END of main
 
 
-// ********************* FUNCTIONS ************
+// ********************* FUNCTIONS SPACE ************
 
 // Func Desc ::  function to display the external data on OLED
 // Param1 A pointer to the  OLED buffer struct
@@ -214,10 +218,10 @@ void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
     myOLED.print("Sensor error");
   } else if ((atoi(str_temp) <= -50) || (atoi(str_temp) >= 95) )
   {
-    myOLED.print("Out of range");
+    myOLED.print("Out of range T");
   } else if ((atoi(str_humid) <= -5) || (atoi(str_humid) >= 105) )
   {
-    myOLED.print("Out of range");
+    myOLED.print("Out of range H");
   }
   else
   {
