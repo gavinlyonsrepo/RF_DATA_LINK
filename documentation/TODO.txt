@@ -1,0 +1,7 @@
+
+TODO
+--------------------
+
+1. Update Receivcer to be low power battery design ??
+2. PCB design 
+3. final build
