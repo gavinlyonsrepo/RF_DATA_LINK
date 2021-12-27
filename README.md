@@ -4,7 +4,7 @@ Table of contents
   * [Overview](#overview)
   * [Features](#features)
   * [Files](#files)
-  * [Schematic](schematic) 
+  * [Schematic](#schematic) 
 
 Overview
 --------------------
@@ -40,7 +40,7 @@ A status LED turns on during power on setup and during each data burst very brie
 1. Transmitter current consumption sleep period ~20uA
 2. Transmitter current consumption wake period ~30mA 
 
-The data packet sent :  XTT.TT,HH.HH,V.VV . X is + or - T is temperature, H is humdity and V is battery voltage , 17 bytes. 
+The data packet sent :  XTT.TT,HH.HH,V.VV . X is + or - T is temperature, H is humdity and V is battery voltage , 17 bytes.  The battery voltage function  uses the internal Aref ,  normally this is 1.1 volts in theory. User can calibrate for greater accuracy by following instructions in "getBatteryVolts" function  header. 
 
  WL102-341 transmitter and WL101-341 receiver units used : 
   
