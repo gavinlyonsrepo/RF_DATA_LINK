@@ -25,7 +25,7 @@
 
 //******************** LIBRARIES ******************
 #include <M2M_LM75A.h> // [URL](https://github.com/m2m-solutions/M2M_LM75A)
-#include "ER_OLEDM1_CH1115.h" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115)
+#include "ER_OLEDM1_CH1115.h" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115) v1.3
 #include <RH_ASK.h> // [URL](https://www.airspayce.com/mikem/arduino/RadioHead/)
 #ifdef RH_HAVE_HARDWARE_SPI
 #include <SPI.h> // Not actually used but needed to compile
@@ -49,8 +49,8 @@ M2M_LM75A lm75a;
 
 // OLED
 #define OLEDcontrast 0x80 //Contrast 00 to FF , 0x80 is default. user adjust
-#define myOLEDheight 64
-#define myOLEDwidth  128
+#define MYOLEDHEIGHT 64
+#define MYOLEDWIDTH 128
 #define OLED_DC 10 // GPIO pin number pick any you want 
 #define OLED_RES 9 // "
 #define OLED_CS 8  // "
@@ -103,24 +103,18 @@ void setup() {
 void loop() {
 
   //define a buffer to cover half  screen
-  uint8_t  screenBuffer[(myOLEDwidth * (myOLEDheight / 8)) / 2]; //(128 * 8)/2 = 512 bytes
+  uint8_t  screenBuffer[(MYOLEDWIDTH * (MYOLEDHEIGHT / 8)) / 2]; //(128 * 8)/2 = 512 bytes
 
   // Define half size screen buffer for top side of OLED
   MultiBuffer top_side;
-  top_side.screenbitmap = (uint8_t*) &screenBuffer;
-  top_side.width = (myOLEDwidth) ;
-  top_side.height = myOLEDheight / 2;
-  top_side.xoffset = 0;
-  top_side.yoffset = 0;
-
-  // Define half size screen buffer for Bottom side of OLED
+ // Intialise that struct with buffer details (&struct,  buffer, w, h, x-offset,y-offset)
+  myOLED.OLEDinitBufferStruct(&top_side, screenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2, 0, 0);
+  
+   // Define half size screen buffer for Bottom side of OLED
   MultiBuffer bot_side;
-  bot_side.screenbitmap = (uint8_t*) &screenBuffer;
-  bot_side.width = (myOLEDwidth);
-  bot_side.height = myOLEDheight / 2;
-  bot_side.xoffset = 0 ;
-  bot_side.yoffset = (myOLEDheight / 2);
-
+  // Intialise that struct with buffer details (&struct,  buffer, w, h, x-offset,y-offset)
+  myOLED.OLEDinitBufferStruct(&bot_side, screenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2,  0, MYOLEDHEIGHT/2);
+  
   //first pass display
   DisplayInternal(&top_side);
   DisplayExternal(&bot_side, true);
