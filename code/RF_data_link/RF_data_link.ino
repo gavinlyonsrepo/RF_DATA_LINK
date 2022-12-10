@@ -25,7 +25,7 @@
 
 //******************** LIBRARIES ******************
 #include <M2M_LM75A.h> // [URL](https://github.com/m2m-solutions/M2M_LM75A)
-#include "ER_OLEDM1_CH1115.h" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115) v1.3
+#include "ER_OLEDM1_CH1115.hpp" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115) v1.3
 #include <RH_ASK.h> // [URL](https://www.airspayce.com/mikem/arduino/RadioHead/)
 #ifdef RH_HAVE_HARDWARE_SPI
 #include <SPI.h> // Not actually used but needed to compile
