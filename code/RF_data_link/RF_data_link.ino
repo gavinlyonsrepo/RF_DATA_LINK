@@ -16,16 +16,17 @@
   1. I2C SDA  = LM75A SDA
   2. I2C SCLK = LM75A SCLK
   3. D11 = 433Mhz Rx Data in
-  4. D10 OLED_DC 10
-  5. D9 OLED_RES 9
-  6. D8 OLED_CS 8
-  7. D4 OLED_SCLK 4
-  8. D5 OLED_SDATA 5
+  4. D9 OLED_CS 9 
+  5. D8 OLED_DC 8
+  6. D7 OLED_RES 7 
+  7. D6 OLED_SDATA 6
+  8. D5 OLED_SCLK 5
+ 
 */
 
 //******************** LIBRARIES ******************
 #include <M2M_LM75A.h> // [URL](https://github.com/m2m-solutions/M2M_LM75A)
-#include "ER_OLEDM1_CH1115.hpp" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115) v1.3
+#include "ER_OLEDM1_CH1115.hpp" // [URL](https://github.com/gavinlyonsrepo/ER_OLEDM1_CH1115) v1.4
 #include <RH_ASK.h> // [URL](https://www.airspayce.com/mikem/arduino/RadioHead/)
 #ifdef RH_HAVE_HARDWARE_SPI
 #include <SPI.h> // Not actually used but needed to compile
@@ -51,13 +52,20 @@ M2M_LM75A lm75a;
 #define OLEDcontrast 0x80 //Contrast 00 to FF , 0x80 is default. user adjust
 #define MYOLEDHEIGHT 64
 #define MYOLEDWIDTH 128
-#define OLED_DC 10 // GPIO pin number pick any you want 
-#define OLED_RES 9 // "
-#define OLED_CS 8  // "
-#define OLED_SCLK 4 // "
-#define OLED_SDATA 5 // "
-ERMCH1115  myOLED(OLED_DC, OLED_RES, OLED_CS, OLED_SCLK, OLED_SDATA);  // GPIO 5-wire Software SPI interface
-
+#define OLED_CS 9  // GPIO pin number pick any you want 
+#define OLED_DC 8 // "
+#define OLED_RES 7 // "
+#define OLED_SDATA 6 // "
+#define OLED_SCLK 5 // "
+//define a buffer to cover half  screen
+#define HALFSCREEN ((MYOLEDWIDTH * (MYOLEDHEIGHT / 8)) / 2) //(128 * 8)/2 = 512 bytes half screen 
+// Define a Buffer
+uint8_t  halfScreenBuffer[HALFSCREEN]; 
+// GPIO 5-wire Software SPI interface
+ERMCH1115  myOLED(MYOLEDWIDTH, MYOLEDHEIGHT, OLED_DC, OLED_RES, OLED_CS, OLED_SCLK, OLED_SDATA);  
+// instantiate two Shared buffer objects , one for each half of screen
+ERMCH1115_SharedBuffer  topSide(halfScreenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2, 0, 0);
+ERMCH1115_SharedBuffer bottomSide(halfScreenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2, 0, MYOLEDHEIGHT/2);
 
 // RF 433 mHz ask
 RH_ASK driver;
@@ -67,8 +75,8 @@ uint8_t bufRXlen = sizeof(bufRX);
 uint16_t RXCount = 0;
 
 // ************ Function Headers ***********************
-void DisplayInternal(MultiBuffer* );
-void DisplayExternal(MultiBuffer* , bool );
+void DisplayInternal();
+void DisplayExternal(bool );
 
 //******************** SETUP LOOP************************
 void setup() {
@@ -79,7 +87,12 @@ void setup() {
 
   // OLED setup
   myOLED.OLEDbegin(OLEDcontrast); // initialize the OLED
-  myOLED.OLEDFillScreen(0x00, 0);
+  myOLED.OLEDFillScreen(0x0F, 0);
+  delay(INITDELAY);
+  myOLED.OLEDFillScreen(0x00, 0); // Clear the screen
+  myOLED.setTextColor(OLED_WHITE,OLED_BLACK);
+  myOLED.setTextSize(1);
+  myOLED.setFontNum(CH1115Font_Default); 
 
   // Serial Setup
 #ifdef RF_SERIAL_DEBUG_ON
@@ -101,23 +114,10 @@ void setup() {
 
 //******************* MAIN LOOP *****************
 void loop() {
-
-  //define a buffer to cover half  screen
-  uint8_t  screenBuffer[(MYOLEDWIDTH * (MYOLEDHEIGHT / 8)) / 2]; //(128 * 8)/2 = 512 bytes
-
-  // Define half size screen buffer for top side of OLED
-  MultiBuffer top_side;
- // Intialise that struct with buffer details (&struct,  buffer, w, h, x-offset,y-offset)
-  myOLED.OLEDinitBufferStruct(&top_side, screenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2, 0, 0);
-  
-   // Define half size screen buffer for Bottom side of OLED
-  MultiBuffer bot_side;
-  // Intialise that struct with buffer details (&struct,  buffer, w, h, x-offset,y-offset)
-  myOLED.OLEDinitBufferStruct(&bot_side, screenBuffer, MYOLEDWIDTH, MYOLEDHEIGHT/2,  0, MYOLEDHEIGHT/2);
   
   //first pass display
-  DisplayInternal(&top_side);
-  DisplayExternal(&bot_side, true);
+  DisplayInternal();
+  DisplayExternal(true);
 
   while (true) // Test loop forever
   {
@@ -133,14 +133,14 @@ void loop() {
     if ( TestCount >=  READSENSOR ) // Read Internal sensor every READSENSOR time
     {
       TestCount = 0;
-      DisplayInternal(&top_side);
+      DisplayInternal();
     }
 
     if (driver.recv(bufRX, &bufRXlen)) // Non-blocking, Did data come from transmitter?
     {
       RXCount++;
       if (RXCount == 9999) RXCount = 0;
-      DisplayExternal(&bot_side, false);
+      DisplayExternal(false);
     }
 
   }// test while
@@ -154,10 +154,10 @@ void loop() {
 // Param1 A pointer to the  OLED buffer struct
 // Param2 bool if true just display text and no data.
 
-void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
+void DisplayExternal(bool NoDataDisplay)
 {
   Serial.print(RXCount);
-  myOLED.ActiveBuffer = targetbuffer; // set target buffer object
+  myOLED.ActiveBufferPtr = &bottomSide; // set target buffer object
   myOLED.OLEDclearBuffer();
   myOLED.setCursor(0, 0);
   myOLED.setTextSize(1);
@@ -223,7 +223,7 @@ void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
     myOLED.print(str_temp);
     myOLED.setCursor(0, 0);
     myOLED.setTextSize(1);
-    myOLED.setCursor(65, 22);
+    myOLED.setCursor(70, 22);
     myOLED.print(" C ");
     myOLED.print(str_humid);
     myOLED.print("%");
@@ -238,11 +238,11 @@ void DisplayExternal(MultiBuffer* targetbuffer, bool NoDataDisplay)
 // Func Desc ::  function to display the internal data on OLED
 // Param1 A pointer to the  OLED buffer struct
 
-void DisplayInternal(MultiBuffer* targetbuffer)
+void DisplayInternal()
 {
   float temperatureReading = 0.0;
   temperatureReading = lm75a.getTemperature();
-  myOLED.ActiveBuffer = targetbuffer; // set target buffer object
+  myOLED.ActiveBufferPtr = &topSide; // set target buffer object
   myOLED.OLEDclearBuffer();
   myOLED.setCursor(0, 0);
   myOLED.setTextSize(1);
